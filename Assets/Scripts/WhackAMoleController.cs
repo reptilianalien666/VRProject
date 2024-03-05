@@ -8,8 +8,6 @@ public class WhackAMoleController : MonoBehaviour
     public List<GameObject> moles; // List of mole game objects
     public float minPopUpInterval = 1f; // Minimum interval between mole pop-ups
     public float maxPopUpInterval = 3f; // Maximum interval between mole pop-ups
-    public float minPopUpTime = 1f; // Minimum time a mole stays popped up
-    public float maxPopUpTime = 2f; // Maximum time a mole stays popped up
     public float popUpHeight = 0.5f; // Height at which mole pops up
     public float popDownSpeed = 5f; // Speed at which mole moves down
     public AudioClip popUpSound; // Sound effect for mole pop-up
@@ -18,15 +16,10 @@ public class WhackAMoleController : MonoBehaviour
 
     private void Start()
     {
-        StartCoroutine(PopUpMoles());
+        StartCoroutine(PopUpAndDownMoles());
     }
 
-    private void Update()
-    {
-
-    }
-
-    IEnumerator PopUpMoles()
+    private IEnumerator PopUpAndDownMoles()
     {
         while (true)
         {
@@ -38,56 +31,41 @@ public class WhackAMoleController : MonoBehaviour
             // Play pop-up sound effect
             AudioSource.PlayClipAtPoint(popUpSound, mole.transform.position);
 
-            // Get the initial position of the mole
+            // Get the initial and target positions
             Vector3 startPos = mole.transform.position;
+            Vector3 endPos = startPos + Vector3.up * popUpHeight;
 
             // Move mole up
             mole.SetActive(true);
-            StartCoroutine(MoveMole(mole.transform, startPos, startPos + Vector3.up * popUpHeight, Random.Range(minPopUpTime, maxPopUpTime)));
+            float elapsedTime = 0f;
+            while (elapsedTime < 0.5f) // Adjust this duration as needed
+            {
+                elapsedTime += Time.deltaTime;
+                mole.transform.position = Vector3.Lerp(startPos, endPos, elapsedTime / 0.5f);
+                yield return null;
+            }
 
-            yield return null;
+            // Wait for pop-up duration
+            yield return new WaitForSeconds(Random.Range(1f, 2f)); // Adjust these ranges as needed
+
+            // Move mole down
+            elapsedTime = 0f;
+            while (elapsedTime < 0.5f) // Adjust this duration as needed
+            {
+                elapsedTime += Time.deltaTime;
+                mole.transform.position = Vector3.Lerp(endPos, startPos, elapsedTime / 0.5f);
+                yield return null;
+            }
+
+            // Disable mole
+            mole.SetActive(false);
         }
     }
 
-    IEnumerator MoveMole(Transform moleTransform, Vector3 startPos, Vector3 endPos, float duration)
+    private void OnTriggerEnter(Collider other)
     {
-        float elapsed = 0f;
-        while (elapsed < duration)
-        {
-            elapsed += Time.deltaTime;
-            moleTransform.position = Vector3.Lerp(startPos, endPos, elapsed / duration);
-            yield return null;
-        }
-
-        // Wait for a short delay before moving the mole down
-        yield return new WaitForSeconds(0.5f);
-
-        // Move mole down
-        StartCoroutine(MoveMoleDown(moleTransform, moleTransform.position, startPos, popDownSpeed));
-    }
-
-    IEnumerator MoveMoleDown(Transform moleTransform, Vector3 startPos, Vector3 endPos, float speed)
-    {
-        float distance = Vector3.Distance(startPos, endPos);
-        float duration = distance / speed;
-        float elapsed = 0f;
-        while (elapsed < duration)
-        {
-            elapsed += Time.deltaTime;
-            moleTransform.position = Vector3.Lerp(startPos, endPos, elapsed / duration);
-            yield return null;
-        }
-        moleTransform.position = endPos;
-        moleTransform.gameObject.SetActive(false);
-        yield return null;
-    }
-
-    void OnTriggerEnter(Collider other)
-    {
-        Debug.Log("Collision detected!");
         if (other.CompareTag("Mole"))
         {
-            Debug.Log("Mole hit by hammer!");
             // Increase the score
             score++;
             // Update the score text
