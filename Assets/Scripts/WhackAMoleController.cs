@@ -66,6 +66,7 @@ public class WhackAMoleController : MonoBehaviour
     {
         if (other.CompareTag("Mole"))
         {
+            Debug.Log("Hammer hit mole");
             // Increase the score
             score++;
             // Update the score text
